@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+
+<head>
+
+</head>
+<body>
+    JSON<br>
+    <input id="json" type="text"><br>
+    <button onclick="jsonopen()">Open</button>
+    <hr>
+    <h2>Creation</h2>
+    Jobs<br>
+    <input id="newjobs" type="text"><br>
+    Delimited by spaces
+    <br>
+    <br>
+    <button onclick="jsonnew()">Create new file</button>
+
+    <hr>
+    <h2>File</h2>
+    Open from #
+    <input id="numberpicker"><button onclick="openuser()">Go</button><br>
+    Add another user <button onclick="newuser()">Go</button> <i>Next # added will be <div style="display:inline">55</div></i>
+    <hr>
+    <h2>Individual Data</h2>
+        <div id="indidata" style="display:none">
+        <b>Info</b><br>
+        <div style="display: inline-block;min-width: 80px;">Username</div><input><br>
+        <br>
+        <b>Job Rating list</b><br>
+        <div style="display: inline-block;min-width: 80px;">Test</div><input><br>
+        <button>Compile into Matrix</button>
+        <br><br>
+        <div style="display: inline-block;min-width: 80px;">Matrix</div><input><br>
+        <button>Save Matrix to User</button>
+        </div>
+    <hr>
+    <h2>Results</h2>
+    <button onclick="runanalysis()">Run</button>
+    <br>
+    <b>
+        <div style="display: inline-block;min-width: 50px;">#</div>
+        <div style="display: inline-block;min-width: 200px;">Name</div>
+        <div style="display: inline-block;min-width: 200px;">Job</div>
+        <div style="display: inline-block;min-width: 200px;">Value</div>
+    </b>
+    <div id="Test"></div>
+    <hr>
+    <h2>Index</h2>
+    <div style="display: inline-block;min-width: 50px;">#</div>
+    <div style="display: inline-block;min-width: 200px;">Name</div>
+    <div style="display: inline-block;min-width: 200px;">Matrix</div>
+
+    <script src="munkres.js"></script>
+    <script>
+    var file = {
+        names:[],
+        jobs:[],
+        matrix:[]
+    }
+
+    function jsonopen(){
+        file = JSON.parse(document.getElementById("json").value) || file
+    }
+    function jsonnew(){
+        var list = JSON.parse(`["` + document.getElementById("newjobs").value.replaceAll(` `,`","`) + `"]`)
+        file = {
+            names:[],
+            jobs:list,
+            matrix:[]
+        }
+        //alert("jsonnew: " + JSON.stringify(list))
+    }
+    function newuser(){
+        var newIX = file.names.length
+        file.names.push("New user")
+        file.matrix.push([])
+        for(i=0;i<file.jobs.length;i++){
+            file.matrix[newIX].push(1)
+        }
+        openuser(newIX.toString())
+        //alert("newuser: " + JSON.stringify(file))
+        runanalysis()
+    }
+    function openuser(nameIX){
+        nameIX = nameIX || document.getElementById("numberpicker").value
+
+        var original = `<b>Info</b><br>
+        <div style="display: inline-block;min-width: 80px;">Username</div><input><br>
+        <br>
+        <b>Job Rating list</b><br>
+        <div style="display: inline-block;min-width: 80px;">Test</div><input><br>
+        <button>Compile into Matrix</button>
+        <br><br>
+        <div style="display: inline-block;min-width: 80px;">Matrix</div><input><br>
+        <button>Save Matrix to User</button>`
+
+        var text = ``
+        text += `<b>Info</b><br>`
+        text += `<div style="display: inline-block;min-width: 80px;">Username</div><input id="user" value="` + file.names[nameIX] + `"><br>`
+        text += `<div style="display: inline-block;min-width: 80px;">#</div><input value="` + nameIX + `"><br>`
+        text += `<button onclick="saveUsername('` + nameIX + `')">Save Username</button>`
+        text += `<br>
+        <b>Job Rating list</b><br>`
+
+        for(let i=0;i<file.jobs.length;i++){
+            text += `<div style="display: inline-block;min-width: 80px;">` + file.jobs[i] + 
+                `</div><input id="A` + i + `" value="` + file.matrix[nameIX][i] + `"><br>` // Ids starting with A1, A2, etc...
+        }
+
+        text += `<button onclick="compileIntoMatrix('` + nameIX + `')">Compile into Matrix</button>`
+
+        text +=  `<br><br>`
+        text += `<div style="display: inline-block;min-width: 80px;">Matrix</div><input id="matrix"><br>
+        <button onclick="saveMatrix(` + nameIX + `)">Save Matrix to User</button>`
+        
+        document.getElementById("indidata").style.display = null
+        document.getElementById("indidata").innerHTML = text
+        compileIntoMatrix(nameIX)
+
+    }
+
+    function compileIntoMatrix(ix){
+        var text = `[`
+        var hi = [5,5,4,]
+        for(i=0;i<file.jobs.length;i++){
+            text += document.getElementById("A"+i).value + ","
+        }
+        text += "]"
+        text = text.replace(",]","]")
+        document.getElementById("matrix").value = text
+    }
+    function saveMatrix(ix){
+        file.matrix[ix] = JSON.parse(document.getElementById("matrix").value)
+        document.getElementById("json").value = JSON.stringify(file)
+        document.getElementById("indidata").innerHTML = null
+    }
+
+    function saveUsername(ix){
+        file.names[ix] = document.getElementById("user").value
+        document.getElementById("json").value = JSON.stringify(file)
+    }
+
+    function runanalysis(){
+        document.getElementById("json").value = JSON.stringify(file)
+        var matrix = JSON.parse(JSON.stringify(file.matrix))
+        //alert([matrix[0].length,matrix.length].join(" "))
+        if(matrix[0].length < matrix.length){ // if jobs less than people
+           // alert("JOBS LESS THAN PEOPLE")
+            var difference = matrix.length-matrix[0].length
+            for(i=0;i<matrix.length;i++){
+                for(j=0;j<difference;j++){
+                    matrix[i].push(null)
+                }
+            }
+        }
+        if(matrix[0].length > matrix.length){ // if jobs greater than people
+            //alert("PEOPLE LESS THAN JOBS")
+            var difference = matrix[0].length-matrix.length
+            for(i=0;i<difference;i++){
+                var text = `[`
+                for(j=0;j<matrix[0].length;j++){
+                    text += `0,`
+                }
+                text += `]`
+                text = text.replace(",]","]")
+               // alert(text)
+                matrix.push(JSON.parse(text))
+            }
+            
+        }
+
+        // INVERSE 
+        for(i=0;i<matrix.length;i++){
+            for(j=0;j<matrix[0].length;j++){
+                matrix[i][j] = matrix[i][j]*-1
+            }
+        }
+
+
+
+        var m = new Munkres();
+        var indices = m.compute(matrix);
+        var total = 0;
+        document.getElementById("Test").innerHTML = ""
+        for (var i = 0; i < indices.length; ++i) {
+            var row = indices[i][0], col = indices[i][1];
+            var value = matrix[row][col];
+            total += value;
+            document.getElementById("Test").innerHTML +=
+            `<div style="display: inline-block;min-width: 50px;">` + row + `</div>
+            <div style="display: inline-block;min-width: 200px;">` + (file?.names[row] || "*") + `</div>
+            <div style="display: inline-block;min-width: 200px;">` + (file?.jobs[col] || "*") + `</div>
+            <div style="display: inline-block;min-width: 200px;">` + (matrix[row][col]) + `</div><br>`
+        }
+    }
+
+  
+    </script>
+</body>
