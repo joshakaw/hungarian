@@ -134,11 +134,13 @@
         file.matrix[ix] = JSON.parse(document.getElementById("matrix").value)
         document.getElementById("json").value = JSON.stringify(file)
         document.getElementById("indidata").innerHTML = null
+        runanalysis()
     }
 
     function saveUsername(ix){
         file.names[ix] = document.getElementById("user").value
         document.getElementById("json").value = JSON.stringify(file)
+        runanalysis()
     }
 
     function runanalysis(){
