@@ -2,27 +2,44 @@
 
 <head>
 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+    <style>
+        h2 {
+            font-family: Arial;
+            font-size: 18px;
+            color:darkblue
+        }
+    </style>
 </head>
 <body>
-    JSON<br>
-    <input id="json" type="text"><br>
-    <button onclick="jsonopen()">Open</button>
-    <hr>
-    <h2>Creation</h2>
-    Jobs<br>
-    <input id="newjobs" type="text"><br>
-    Delimited by spaces
-    <br>
-    <br>
-    <button onclick="jsonnew()">Create new file</button>
+    <h2>File/Setup</h2>
+        JSON <input id="json" type="text">
+        <button onclick="jsonopen()">Load</button>
+        <br>
+        <br>
+        Jobs per Person <input value="1"><br>
+        
 
-    <hr>
-    <h2>File</h2>
-    Open from #
-    <input id="numberpicker"><button onclick="openuser()">Go</button><br>
-    Add another user <button onclick="newuser()">Go</button> <i>Next # added will be <div style="display:inline">55</div></i>
-    <hr>
-    <h2>Individual Data</h2>
+        <hr>
+
+    <h2>Jobs</h2>
+        New <input id="newjobs" type="text" placeholder="Data D/S" style="width:100px">
+        <input id="newjobsavailable" type="number" placeholder="# clones" style="width:80px">
+        <button onclick="jsonnew()">Go</button>
+        <br>
+        <br>
+        <button onclick="cloneAll()">Clone all</button>
+        <hr>
+    <h2>Users</h2>
+        Modify
+        <input id="numberpicker" style="width:50px" placeholder="#"><button onclick="openuser()">Go</button><br>
+        New <input id="userstartname" placeholder="Username" style="width:80px">
+        <input id="userstartdata" placeholder="opt. Data D/S" style="width:100px">
+        <button onclick="newuser()">Go</button>
+        <hr>
+    <h2>Workspace</h2>
         <div id="indidata" style="display:none">
         <b>Info</b><br>
         <div style="display: inline-block;min-width: 80px;">Username</div><input><br>
@@ -35,49 +52,64 @@
         <button>Save Matrix to User</button>
         </div>
     <hr>
-    <h2>Results</h2>
+    <h2>Assigments</h2>
     <button onclick="runanalysis()">Run</button>
     <br>
-    <b>
-        <div style="display: inline-block;min-width: 50px;">#</div>
-        <div style="display: inline-block;min-width: 200px;">Name</div>
-        <div style="display: inline-block;min-width: 200px;">Job</div>
-        <div style="display: inline-block;min-width: 200px;">Value</div>
-    </b>
-    <div id="Test"></div>
-    <hr>
-    <h2>Index</h2>
-    <div style="display: inline-block;min-width: 50px;">#</div>
-    <div style="display: inline-block;min-width: 200px;">Name</div>
-    <div style="display: inline-block;min-width: 200px;">Matrix</div>
-
+    <div style="overflow: scroll;">
+    <div style="height:200px;width: 600px;">
+        <b>
+            <div style="display: inline-block;min-width: 50px;">#</div>
+            <div style="display: inline-block;min-width: 200px;">Name</div>
+            <div style="display: inline-block;min-width: 200px;">Job</div>
+            <div style="display: inline-block;min-width: 50px;">Value</div>
+        </b>
+        <div id="Test"></div>
+    </div>
+    </div>
     <script src="munkres.js"></script>
     <script>
     var file = {
         names:[],
         jobs:[],
-        matrix:[]
+        matrix:[],
+        clonesPerJob:[],
+        clonesPerUser:[]
     }
 
     function jsonopen(){
         file = JSON.parse(document.getElementById("json").value) || file
+        runanalysis()
     }
     function jsonnew(){
-        var list = JSON.parse(`["` + document.getElementById("newjobs").value.replaceAll(` `,`","`) + `"]`)
-        file = {
-            names:[],
-            jobs:list,
-            matrix:[]
-        }
+        //var list = JSON.parse(`["` + document.getElementById("newjobs").value.replaceAll(` `,`","`) + `"]`)
+        var max = document.getElementById("newjobsavailable").value
+        file.jobs.push(document.getElementById("newjobs").value)
+        file.clonesPerJob.push(Number.parseInt(document.getElementById("newjobsavailable").value) || 1)
         //alert("jsonnew: " + JSON.stringify(list))
+        //alert(document.getElementById("newjobs").value + " added with " + (document.getElementById("newjobsavailable").value || 1) + " max assignees.")
+        runanalysis()
     }
+    
     function newuser(){
         var newIX = file.names.length
-        file.names.push("New user")
+        var postedname = document.getElementById("userstartname").value
+        var posteddata = JSON.parse(`["` + document.getElementById("userstartdata").value.replaceAll(` `,`","`) + `"]`)
+        file.names.push(postedname || "New user")
+        file.clonesPerUser.push(1)
         file.matrix.push([])
-        for(i=0;i<file.jobs.length;i++){
-            file.matrix[newIX].push(1)
+        if(document.getElementById("userstartdata").value != ""){
+            file.matrix[newIX] = posteddata
+        } else {
+            if(file.jobs.length == 0){
+                alert("Add jobs before adding people.")
+            } else {
+                for(i=0;i<file.jobs.length;i++){
+                file.matrix[newIX].push(1)
+                }
+            }
         }
+        document.getElementById("userstartname").value = ""
+        document.getElementById("userstartdata").value = ""
         openuser(newIX.toString())
         //alert("newuser: " + JSON.stringify(file))
         runanalysis()
@@ -99,7 +131,9 @@
         text += `<b>Info</b><br>`
         text += `<div style="display: inline-block;min-width: 80px;">Username</div><input id="user" value="` + file.names[nameIX] + `"><br>`
         text += `<div style="display: inline-block;min-width: 80px;">#</div><input value="` + nameIX + `"><br>`
+        text += `<div style="display: inline-block;min-width: 80px;">Clones</div><input id="userclonesworkspace" value="` + file.clonesPerUser[nameIX] + `"><br>`
         text += `<button onclick="saveUsername('` + nameIX + `')">Save Username</button>`
+        text += `<button onclick="saveClones('` + nameIX + `')">Save Clones</button>`
         text += `<br>
         <b>Job Rating list</b><br>`
 
@@ -117,9 +151,9 @@
         document.getElementById("indidata").style.display = null
         document.getElementById("indidata").innerHTML = text
         compileIntoMatrix(nameIX)
+        runanalysis()
 
     }
-
     function compileIntoMatrix(ix){
         var text = `[`
         var hi = [5,5,4,]
@@ -143,57 +177,100 @@
         runanalysis()
     }
 
+    function saveClones(ix){
+        file.clonesPerUser[ix] = Number.parseInt(document.getElementById("userclonesworkspace").value)
+        document.getElementById("json").value = JSON.stringify(file)
+
+        runanalysis()
+    }
+
+    function cloneAll(){
+        for(i=0;i<file.clonesPerJob.length;i++){
+            file.clonesPerJob[i] += 1
+        }
+        runanalysis()
+    }
     function runanalysis(){
         document.getElementById("json").value = JSON.stringify(file)
-        var matrix = JSON.parse(JSON.stringify(file.matrix))
-        //alert([matrix[0].length,matrix.length].join(" "))
-        if(matrix[0].length < matrix.length){ // if jobs less than people
-           // alert("JOBS LESS THAN PEOPLE")
-            var difference = matrix.length-matrix[0].length
-            for(i=0;i<matrix.length;i++){
-                for(j=0;j<difference;j++){
-                    matrix[i].push(null)
+        var localfile = JSON.parse(JSON.stringify(file))
+
+        var added = 0
+        var originalLength = file.jobs.length
+       // alert("Start")
+       // alert(JSON.stringify(localfile))
+        for(i=0;i<originalLength;i++){
+            if(file.clonesPerJob[i] > 0){
+                for(j=0;j<file.clonesPerJob[i]-1;j++){
+                    localfile.jobs.splice(i+added,0,file.jobs[i])
+                    //alert("ADDED ONE")
+                    for(k=0;k<file.matrix.length;k++){
+                        localfile.matrix[k].splice(i+added,0,file.matrix[k][i])
+                        //alert("ADDED ONE DOWN")
+                    }
+                    added += 1
                 }
             }
         }
-        if(matrix[0].length > matrix.length){ // if jobs greater than people
+        originalLength = file.matrix.length
+
+        added = 0
+        for(i=0;i<originalLength;i++){
+            if(file.clonesPerUser[i] > 0){
+                for(j=0;j<file.clonesPerUser[i]-1;j++){
+                    localfile.matrix.splice(i+added,0,localfile.matrix[i])
+                    localfile.names.splice(i+added,0,file.names[i])
+                    added += 1
+                }
+            }
+        }
+        //alert([matrix[0].length,matrix.length].join(" "))
+        if(localfile.matrix[0].length < localfile.matrix.length){ // if jobs less than people
+           // alert("JOBS LESS THAN PEOPLE")
+            var difference = localfile.matrix.length-localfile.matrix[0].length
+            for(i=0;i<localfile.matrix.length;i++){
+                for(j=0;j<difference;j++){
+                    localfile.matrix[i].push(null)
+                }
+            }
+        }
+        if(localfile.matrix[0].length > localfile.matrix.length){ // if jobs greater than people
             //alert("PEOPLE LESS THAN JOBS")
-            var difference = matrix[0].length-matrix.length
+            var difference = localfile.matrix[0].length-localfile.matrix.length
             for(i=0;i<difference;i++){
                 var text = `[`
-                for(j=0;j<matrix[0].length;j++){
+                for(j=0;j<localfile.matrix[0].length;j++){
                     text += `0,`
                 }
                 text += `]`
                 text = text.replace(",]","]")
                // alert(text)
-                matrix.push(JSON.parse(text))
+                localfile.matrix.push(JSON.parse(text))
             }
             
         }
 
         // INVERSE 
-        for(i=0;i<matrix.length;i++){
-            for(j=0;j<matrix[0].length;j++){
-                matrix[i][j] = matrix[i][j]*-1
+        for(i=0;i<localfile.matrix.length;i++){
+            for(j=0;j<localfile.matrix[0].length;j++){
+                localfile.matrix[i][j] = localfile.matrix[i][j]*-1
             }
         }
 
 
 
         var m = new Munkres();
-        var indices = m.compute(matrix);
+        var indices = m.compute(localfile.matrix);
         var total = 0;
         document.getElementById("Test").innerHTML = ""
         for (var i = 0; i < indices.length; ++i) {
             var row = indices[i][0], col = indices[i][1];
-            var value = matrix[row][col];
+            var value = localfile.matrix[row][col];
             total += value;
             document.getElementById("Test").innerHTML +=
             `<div style="display: inline-block;min-width: 50px;">` + row + `</div>
-            <div style="display: inline-block;min-width: 200px;">` + (file?.names[row] || "*") + `</div>
-            <div style="display: inline-block;min-width: 200px;">` + (file?.jobs[col] || "*") + `</div>
-            <div style="display: inline-block;min-width: 200px;">` + (matrix[row][col]) + `</div><br>`
+            <div style="display: inline-block;min-width: 200px;">` + (localfile?.names[row] || "*") + `</div>
+            <div style="display: inline-block;min-width: 200px;">` + (localfile?.jobs[col] || "*") + `</div>
+            <div style="display: inline-block;min-width: 50px;">` + (localfile.matrix[row][col]) + `</div><br>`
         }
     }
 
